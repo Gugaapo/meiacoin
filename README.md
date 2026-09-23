@@ -9,8 +9,7 @@ down → time is being sold. MeiaCoin turns that into a price chart.
 
 ## Status
 
-Design complete, implementation starting. There is no code here yet — the repository is the
-starting point for development.
+Live collector + API on port 8004; frontend at `/meiacoin`. Genesis starts at first successful poll.
 
 ## The model
 
