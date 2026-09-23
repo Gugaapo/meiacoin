@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MeiaCoin (MEIA)</title>
+  <link rel="icon" type="image/webp" href="/meiacoin/static/dinheiro-1x.webp" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -12,11 +13,27 @@
 </head>
 <body>
   <header class="ticker">
-    <div class="brand-row">
-      <div class="brand">MeiaCoin</div>
-      <span class="mono" style="color:var(--text-muted)">MEIA</span>
-      <span id="pulse" class="pulse" title="Status do feed do timer"></span>
-      <button type="button" class="formula-btn" id="formulaBtn">fórmula</button>
+    <div class="header-top">
+      <div class="brand-row">
+        <img
+          class="brand-emote"
+          src="/meiacoin/static/dinheiro.webp"
+          alt="DINHEIRO"
+          width="48"
+          height="48"
+        />
+        <div class="brand">MeiaCoin</div>
+        <span class="mono" style="color:var(--text-muted)">MEIA</span>
+        <span id="pulse" class="pulse" title="Status do feed do timer"></span>
+        <button type="button" class="formula-btn" id="formulaBtn">fórmula</button>
+      </div>
+      <img
+        class="hero-emote"
+        src="/meiacoin/static/meiatimer.webp"
+        alt="MeiaTimer"
+        width="64"
+        height="64"
+      />
     </div>
     <div id="formulaTip" class="tooltip"></div>
     <div class="price-row">
