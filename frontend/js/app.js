@@ -153,19 +153,22 @@ function updateFormulaTooltip() {
   box.appendChild(
     el("div", {}, [
       el("p", {
-        text: "Esse número grande é o “preço” do MeiaCoin — uma nota de como o timer do subathon está se comportando.",
+        text: "Esse número grande é o “preço” do MeiaCoin, uma nota de como o timer do subathon está se comportando.",
       }),
       el("p", {
         text: "Perto de 100: o timer está saudável. Alguém está mandando Pix/sub no ritmo em que o relógio gasta tempo.",
       }),
       el("p", {
-        text: "Exemplo: se ninguém doa por uma hora, o relógio queima sozinho e o preço cai de leve (tipo ~95). Se alguém manda um Pix forte, o preço sobe na hora e depois vai esfriando aos poucos.",
+        text: "Exemplo: se ninguém doa por uma hora, o relógio queima sozinho e o preço cai de leve (tipo ~95). Se alguém manda um Pix grande, o preço sobe na hora e depois vai esfriando aos poucos.",
       }),
       el("p", {
-        text: "Quanto menos tempo restar no subathon, mais barato o MeiaCoin fica — a vida do timer está acabando.",
+        text: "Quanto menos tempo restar no subathon, mais barato o MeiaCoin fica pois a vida do timer está acabando.",
       }),
       el("p", {
-        text: "A linha pontilhada no gráfico é o “e se ninguém mais doar?”: o caminho que o preço seguiria só com o relógio rodando.",
+        text: "No gráfico: a linha colorida é o preço ao longo do tempo. Verde = subindo, vermelho = caindo. A linha pontilhada é o “e se ninguém mais doar?”.",
+      }),
+      el("p", {
+        text: "As barrinhas embaixo mostram quanto tempo foi comprado naquele pedaço (Pix, sub, etc.). Barra alta = muita doação; barra baixinha ou vazia = silêncio.",
       }),
     ])
   );
