@@ -26,9 +26,9 @@ const GLOSSARY = {
   "ETA da pista":
     "Estimativa de quando o timer zera se o déficit atual continuar (pista / runway).",
   "Melhor hora":
-    "Hora UTC com mais minutos comprados desde a gênese.",
+    "Hora de Brasília (UTC−3) com mais minutos comprados desde a gênese.",
   "Pior hora":
-    "Hora UTC com menos minutos comprados (geralmente zero = só o relógio vendendo).",
+    "Hora de Brasília (UTC−3) com menos minutos comprados (geralmente zero = só o relógio vendendo).",
   "Maior líquido na hora":
     "Maior saldo numa hora: minutos comprados menos os 60 min que o relógio queima.",
   "Mais tempo acima do equilíbrio":

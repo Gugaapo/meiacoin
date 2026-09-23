@@ -1,5 +1,36 @@
 /** @typedef {import('./api.js')} */
 
+const BRT_ZONE = "America/Sao_Paulo";
+
+function formatInBrt(unixSeconds, opts) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRT_ZONE,
+    ...opts,
+  }).format(new Date(unixSeconds * 1000));
+}
+
+/** Axis / crosshair labels in Brasília time (UTC−3). */
+function formatChartTime(time) {
+  if (typeof time !== "number") return String(time);
+  return formatInBrt(time, {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatTickMark(time) {
+  if (typeof time !== "number") return String(time);
+  // Prefer HH:mm when zoomed in; date when zoomed out still ok as dd/mm HH:mm
+  return formatInBrt(time, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export function createMeiaChart(container) {
   const LC = window.LightweightCharts;
   if (!LC) throw new Error("lightweight-charts not loaded");
@@ -15,7 +46,16 @@ export function createMeiaChart(container) {
       horzLines: { color: "rgba(46,204,113,0.08)" },
     },
     rightPriceScale: { borderColor: "rgba(46,204,113,0.25)" },
-    timeScale: { borderColor: "rgba(46,204,113,0.25)", timeVisible: true },
+    timeScale: {
+      borderColor: "rgba(46,204,113,0.25)",
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: formatTickMark,
+    },
+    localization: {
+      locale: "pt-BR",
+      timeFormatter: formatChartTime,
+    },
     crosshair: { mode: LC.CrosshairMode.Normal },
   });
 
