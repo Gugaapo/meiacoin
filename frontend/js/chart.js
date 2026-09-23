@@ -43,38 +43,30 @@ function formatTickMark(time) {
 }
 
 /**
- * Split a price path into up/down area data.
- * Shared hinge points keep segments continuous; whitespace gaps stop LWC
- * from drawing a line across the opposite-slope periods.
+ * Break a price path into contiguous slope runs.
+ * Each run becomes its own area series so green and red coexist on one chart.
+ * Hinge points are shared so the path stays continuous at turns.
  */
-function splitBySlope(points) {
-  const upVals = new Map();
-  const downVals = new Map();
-  if (!points.length) {
-    return { upData: [], downData: [] };
-  }
-  if (points.length === 1) {
-    upVals.set(points[0].time, points[0].value);
-  } else {
-    let dir = null;
-    for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1];
-      const b = points[i];
-      const nextDir = b.value >= a.value ? "up" : "down";
-      const bag = nextDir === "up" ? upVals : downVals;
-      if (dir !== nextDir) {
-        bag.set(a.time, a.value);
-        dir = nextDir;
-      }
-      bag.set(b.time, b.value);
+function slopeSegments(points) {
+  if (!points.length) return [];
+  if (points.length === 1) return [{ dir: "up", points: [points[0]] }];
+
+  const segs = [];
+  let dir = points[1].value >= points[0].value ? "up" : "down";
+  let cur = [points[0], points[1]];
+
+  for (let i = 2; i < points.length; i++) {
+    const nextDir = points[i].value >= points[i - 1].value ? "up" : "down";
+    if (nextDir === dir) {
+      cur.push(points[i]);
+    } else {
+      segs.push({ dir, points: cur });
+      cur = [points[i - 1], points[i]];
+      dir = nextDir;
     }
   }
-
-  const times = points.map((p) => p.time);
-  const toSeries = (map) =>
-    times.map((t) => (map.has(t) ? { time: t, value: map.get(t) } : { time: t }));
-
-  return { upData: toSeries(upVals), downData: toSeries(downVals) };
+  segs.push({ dir, points: cur });
+  return segs;
 }
 
 export function createMeiaChart(container) {
@@ -105,28 +97,15 @@ export function createMeiaChart(container) {
     crosshair: { mode: LC.CrosshairMode.Normal },
   });
 
-  const upSeries = chart.addAreaSeries({
-    ...UP_STYLE,
-    lineWidth: 2,
-    priceLineVisible: false,
-    lastValueVisible: false,
-    crosshairMarkerVisible: false,
-  });
+  /** @type {ReturnType<typeof chart.addAreaSeries>[]} */
+  let slopeSeries = [];
 
-  const downSeries = chart.addAreaSeries({
-    ...DOWN_STYLE,
-    lineWidth: 2,
-    priceLineVisible: false,
-    lastValueVisible: false,
-    crosshairMarkerVisible: false,
-  });
-
-  // Full path: markers + crosshair + last-price label (color follows latest slope).
+  // Invisible full path — only for buy markers + crosshair (never paints the line).
   const markerSeries = chart.addLineSeries({
-    color: UP_STYLE.lineColor,
-    lineWidth: 0,
+    color: "rgba(0,0,0,0)",
+    lineWidth: 1,
     priceLineVisible: false,
-    lastValueVisible: true,
+    lastValueVisible: false,
     crosshairMarkerVisible: true,
     crosshairMarkerRadius: 4,
     crosshairMarkerBorderColor: UP_STYLE.lineColor,
@@ -163,6 +142,17 @@ export function createMeiaChart(container) {
     scaleMargins: { top: 0.05, bottom: 0.25 },
   });
 
+  function clearSlopeSeries() {
+    for (const s of slopeSeries) {
+      try {
+        chart.removeSeries(s);
+      } catch {
+        /* already removed */
+      }
+    }
+    slopeSeries = [];
+  }
+
   function toUnix(iso) {
     return Math.floor(new Date(iso).getTime() / 1000);
   }
@@ -188,32 +178,35 @@ export function createMeiaChart(container) {
       if (b.warming_up) warmEnd = t;
     }
 
-    const { upData, downData } = splitBySlope(priceData);
-    upSeries.setData(upData);
-    downSeries.setData(downData);
-    markerSeries.setData(priceData);
-    bleedSeries.setData(bleedData);
-    neutralLine.setData(neutralData);
-    volumeSeries.setData(volData);
+    clearSlopeSeries();
+    const segs = slopeSegments(priceData);
+    segs.forEach((seg, idx) => {
+      const style = seg.dir === "up" ? UP_STYLE : DOWN_STYLE;
+      const isLast = idx === segs.length - 1;
+      const series = chart.addAreaSeries({
+        ...style,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: isLast,
+        crosshairMarkerVisible: false,
+      });
+      series.setData(seg.points);
+      slopeSeries.push(series);
+    });
 
-    // Last-price badge follows the latest slope color.
-    if (priceData.length >= 2) {
-      const a = priceData[priceData.length - 2];
-      const b = priceData[priceData.length - 1];
-      const rising = b.value >= a.value;
-      const c = rising ? UP_STYLE.lineColor : DOWN_STYLE.lineColor;
+    markerSeries.setData(priceData);
+    if (segs.length) {
+      const last = segs[segs.length - 1];
+      const c = last.dir === "up" ? UP_STYLE.lineColor : DOWN_STYLE.lineColor;
       markerSeries.applyOptions({
-        color: c,
         crosshairMarkerBorderColor: c,
         crosshairMarkerBackgroundColor: c,
       });
-    } else {
-      markerSeries.applyOptions({
-        color: UP_STYLE.lineColor,
-        crosshairMarkerBorderColor: UP_STYLE.lineColor,
-        crosshairMarkerBackgroundColor: UP_STYLE.lineColor,
-      });
     }
+
+    bleedSeries.setData(bleedData);
+    neutralLine.setData(neutralData);
+    volumeSeries.setData(volData);
 
     const markers = (seriesPayload.markers || []).map((m) => ({
       time: toUnix(m.t),
@@ -233,7 +226,7 @@ export function createMeiaChart(container) {
       chart.timeScale().fitContent();
     }
 
-    return { warmEnd, barCount: bars.length };
+    return { warmEnd, barCount: bars.length, segments: segs.length };
   }
 
   function resize() {
