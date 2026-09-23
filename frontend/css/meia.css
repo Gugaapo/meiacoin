@@ -34,7 +34,7 @@ header.ticker {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 4rem;
+  min-height: 6.5rem;
 }
 
 .brand-row {
@@ -59,9 +59,9 @@ header.ticker {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: clamp(2.75rem, 6vw, 4rem);
-  height: clamp(2.75rem, 6vw, 4rem);
-  object-fit: contain;
+  width: clamp(5.5rem, 14vw, 9rem);
+  height: clamp(4rem, 10vw, 6.5rem);
+  object-fit: fill;
   pointer-events: none;
   z-index: 0;
 }
