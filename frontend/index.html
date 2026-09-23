@@ -4,28 +4,69 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MeiaCoin (MEIA)</title>
-  <style>
-    :root {
-      --bg-deep: #0a1a0f;
-      --text-primary: #e0ffe0;
-      --accent-green: #2ecc71;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg-deep);
-      color: var(--text-primary);
-      font-family: system-ui, sans-serif;
-      display: grid;
-      place-items: center;
-    }
-    p { color: #70a080; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/meiacoin/css/meia.css" />
+  <script src="/meiacoin/vendor/lightweight-charts/lightweight-charts.js"></script>
 </head>
 <body>
-  <main>
-    <h1 style="color: var(--accent-green)">MeiaCoin</h1>
-    <p>Gathering market data…</p>
-  </main>
+  <header class="ticker">
+    <div class="brand-row">
+      <div class="brand">MeiaCoin</div>
+      <span class="mono" style="color:var(--text-muted)">MEIA</span>
+      <span id="pulse" class="pulse" title="feed status"></span>
+      <button type="button" class="formula-btn" id="formulaBtn">formula</button>
+    </div>
+    <div id="formulaTip" class="tooltip"></div>
+    <div class="price-row">
+      <div id="price" class="price mono">—</div>
+      <div id="chg1h" class="chg mono">1h —</div>
+      <div id="chg24h" class="chg mono">24h —</div>
+    </div>
+    <div class="stats">
+      <span>24h H <strong id="high24" class="mono">—</strong></span>
+      <span>24h L <strong id="low24" class="mono">—</strong></span>
+      <span>ATH <strong id="ath" class="mono">—</strong></span>
+      <span>Drawdown <strong id="dd" class="mono">—</strong></span>
+      <span>Market cap <strong id="mcap" class="mono">—</strong></span>
+      <span id="lm" class="mono">L=— · m=—</span>
+    </div>
+  </header>
+
+  <div class="tf-bar" id="tfBar">
+    <button type="button" data-tf="1m">1m</button>
+    <button type="button" data-tf="5m" class="active">5m</button>
+    <button type="button" data-tf="15m">15m</button>
+    <button type="button" data-tf="1h">1h</button>
+    <button type="button" data-tf="4h">4h</button>
+    <button type="button" data-tf="1d">1d</button>
+  </div>
+
+  <div class="chart-wrap">
+    <div id="premarket" class="premarket"></div>
+    <div id="chart"></div>
+  </div>
+
+  <section class="panels">
+    <article class="panel">
+      <h3>Burn wall</h3>
+      <div id="burnBody"></div>
+    </article>
+    <article class="panel">
+      <h3>Trade tape</h3>
+      <div id="tapeBody"></div>
+    </article>
+    <article class="panel">
+      <h3>Records</h3>
+      <div id="recordsBody"></div>
+    </article>
+  </section>
+
+  <footer class="note">
+    Peg: R$1 tip = +1 minute. Money figures are tip-equivalent. No donor names exist in the feed.
+  </footer>
+
+  <script type="module" src="/meiacoin/js/app.js"></script>
 </body>
 </html>
