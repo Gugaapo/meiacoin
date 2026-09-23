@@ -15,8 +15,8 @@
     <div class="brand-row">
       <div class="brand">MeiaCoin</div>
       <span class="mono" style="color:var(--text-muted)">MEIA</span>
-      <span id="pulse" class="pulse" title="feed status"></span>
-      <button type="button" class="formula-btn" id="formulaBtn">formula</button>
+      <span id="pulse" class="pulse" title="Status do feed do timer"></span>
+      <button type="button" class="formula-btn" id="formulaBtn">fórmula</button>
     </div>
     <div id="formulaTip" class="tooltip"></div>
     <div class="price-row">
@@ -25,22 +25,22 @@
       <div id="chg24h" class="chg mono">24h —</div>
     </div>
     <div class="stats">
-      <span>24h H <strong id="high24" class="mono">—</strong></span>
-      <span>24h L <strong id="low24" class="mono">—</strong></span>
-      <span>ATH <strong id="ath" class="mono">—</strong></span>
-      <span>Drawdown <strong id="dd" class="mono">—</strong></span>
-      <span>Market cap <strong id="mcap" class="mono">—</strong></span>
-      <span id="lm" class="mono">L=— · m=—</span>
+      <span class="term" tabindex="0" data-tip="Maior preço das últimas 24 horas.">Máx 24h <strong id="high24" class="mono">—</strong></span>
+      <span class="term" tabindex="0" data-tip="Menor preço das últimas 24 horas.">Mín 24h <strong id="low24" class="mono">—</strong></span>
+      <span class="term" tabindex="0" data-tip="All-time high: o maior preço já registrado desde o início (gênese) deste app.">ATH <strong id="ath" class="mono">—</strong></span>
+      <span class="term" tabindex="0" data-tip="Queda percentual do preço em relação ao ATH (all-time high).">Drawdown <strong id="dd" class="mono">—</strong></span>
+      <span class="term" tabindex="0" data-tip="Tempo restante no timer do subathon — o “tamanho” do ativo em vida restante.">Cap. de mercado <strong id="mcap" class="mono">—</strong></span>
+      <span id="lm" class="mono term" tabindex="0" data-tip="L = fração da vida de pico ainda restante. m = fluxo líquido de compras na janela (m = −1 = ninguém comprou).">L=— · m=—</span>
     </div>
   </header>
 
   <div class="tf-bar" id="tfBar">
-    <button type="button" data-tf="1m">1m</button>
-    <button type="button" data-tf="5m" class="active">5m</button>
-    <button type="button" data-tf="15m">15m</button>
-    <button type="button" data-tf="1h">1h</button>
-    <button type="button" data-tf="4h">4h</button>
-    <button type="button" data-tf="1d">1d</button>
+    <button type="button" data-tf="1m" title="Gráfico em velas de 1 minuto">1m</button>
+    <button type="button" data-tf="5m" class="active" title="Gráfico em velas de 5 minutos">5m</button>
+    <button type="button" data-tf="15m" title="Gráfico em velas de 15 minutos">15m</button>
+    <button type="button" data-tf="1h" title="Gráfico em velas de 1 hora">1h</button>
+    <button type="button" data-tf="4h" title="Gráfico em velas de 4 horas">4h</button>
+    <button type="button" data-tf="1d" title="Gráfico em velas de 1 dia">1d</button>
   </div>
 
   <div class="chart-wrap">
@@ -50,21 +50,21 @@
 
   <section class="panels">
     <article class="panel">
-      <h3>Burn wall</h3>
+      <h3 class="term" tabindex="0" data-tip="Parede de queima: quanto precisa ser “comprado” por hora (em tip-equivalente) só para o timer não cair. O relógio consome 60 min/h; com o peg R$1 = 1 min, isso é R$60/h.">Parede de queima</h3>
       <div id="burnBody"></div>
     </article>
     <article class="panel">
-      <h3>Trade tape</h3>
+      <h3 class="term" tabindex="0" data-tip="Fita de negócios: cada aumento detectado no ends_at do timer vira um “trade”. Mostra tamanho, horário e classe provável (sub, bits, tip…). Nunca há nome de doador — o feed não tem identidade.">Fita de trades</h3>
       <div id="tapeBody"></div>
     </article>
     <article class="panel">
-      <h3>Records</h3>
+      <h3 class="term" tabindex="0" data-tip="Placar de recordes desde a gênese deste app: melhor/pior hora, maior saldo líquido numa hora, maior sequência acima do equilíbrio e maior estiagem sem compras.">Recordes</h3>
       <div id="recordsBody"></div>
     </article>
   </section>
 
   <footer class="note">
-    Peg: R$1 tip = +1 minute. Money figures are tip-equivalent. No donor names exist in the feed.
+    Peg: R$1 de tip = +1 minuto. Valores em R$ são equivalentes em tip. Não existem nomes de doadores no feed.
   </footer>
 
   <script type="module" src="/meiacoin/js/app.js"></script>

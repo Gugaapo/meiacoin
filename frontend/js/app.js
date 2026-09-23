@@ -7,6 +7,38 @@ import {
 } from "./api.js";
 import { createMeiaChart } from "./chart.js";
 
+const TIP_EQ = "equivalente em tip a R$1 = 1 min";
+
+/** Glossário: o que cada rótulo das seções significa. */
+const GLOSSARY = {
+  "Parede de queima":
+    "Quanto em tip-equivalente (R$/h) é preciso comprar só para o timer ficar parado. O relógio queima 60 min por hora → R$60/h no peg.",
+  "Ritmo atual":
+    "Média de minutos comprados por hora desde a gênese, convertida em R$/h tip-equivalente.",
+  Cobertura:
+    "Porcentagem da queima do relógio que as compras cobriram (comprado ÷ queimado).",
+  Déficit:
+    "Diferença entre a parede (R$60/h) e o ritmo atual. Positivo = o timer ainda está encolhendo em média.",
+  Comprado:
+    "Soma de todos os minutos adicionados ao timer (grants) desde a gênese deste app.",
+  Queimado:
+    "Minutos que o relógio consumiu sozinho desde a gênese (tempo decorrido).",
+  "ETA da pista":
+    "Estimativa de quando o timer zera se o déficit atual continuar (pista / runway).",
+  "Melhor hora":
+    "Hora UTC com mais minutos comprados desde a gênese.",
+  "Pior hora":
+    "Hora UTC com menos minutos comprados (geralmente zero = só o relógio vendendo).",
+  "Maior líquido na hora":
+    "Maior saldo numa hora: minutos comprados menos os 60 min que o relógio queima.",
+  "Mais tempo acima do equilíbrio":
+    "Maior sequência contínua de horas com m > 0 (compras cobrindo mais que a queima).",
+  "Maior estiagem":
+    "Maior sequência contínua de horas sem nenhuma compra.",
+  "Mix de tamanhos":
+    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick). Classes são “prováveis” — o feed não diz a origem com certeza.",
+};
+
 const el = (tag, props = {}, kids = []) => {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
@@ -24,6 +56,19 @@ const el = (tag, props = {}, kids = []) => {
   }
   return node;
 };
+
+/** Rótulo com popup de hover explicando o termo. */
+function termLabel(text, tip) {
+  const explain = tip || GLOSSARY[text] || "";
+  return el("span", {
+    className: "term",
+    text,
+    attrs: {
+      tabindex: "0",
+      "data-tip": explain,
+    },
+  });
+}
 
 function fmtPct(v) {
   if (v == null || Number.isNaN(v)) return "—";
@@ -77,12 +122,21 @@ function renderTicker(data) {
   price.textContent = fmtNum(data.price, 2);
   chg1h.textContent = `1h ${fmtPct(data.change_1h_pct)}`;
   chg1h.className = `chg mono ${data.change_1h_pct >= 0 ? "up" : "down"}`;
+  chg1h.title = "Variação do preço na última hora";
   chg24h.textContent = `24h ${fmtPct(data.change_24h_pct)}`;
   chg24h.className = `chg mono ${data.change_24h_pct >= 0 ? "up" : "down"}`;
+  chg24h.title = "Variação do preço nas últimas 24 horas";
 
   pulse.className = "pulse";
-  if (data.degraded) pulse.classList.add("degraded");
-  else if (data.stale) pulse.classList.add("stale");
+  if (data.degraded) {
+    pulse.classList.add("degraded");
+    pulse.title = "Feed degradado: sem atualização recente";
+  } else if (data.stale) {
+    pulse.classList.add("stale");
+    pulse.title = "Feed atrasado: mostrando último valor conhecido";
+  } else {
+    pulse.title = "Feed ao vivo";
+  }
 
   document.getElementById("high24").textContent = fmtNum(data.high_24h, 2);
   document.getElementById("low24").textContent = fmtNum(data.low_24h, 2);
@@ -105,13 +159,13 @@ function updateFormulaTooltip() {
         text: "P = 100 · L^α · e^(κ·m)",
       }),
       el("p", {
-        text: `L = R/R_ref (peak life left) · m = (minutes bought in ${m.window_minutes} min)/${m.window_minutes} − 1`,
+        text: `L = R/R_ref (fração da vida de pico restante) · m = (minutos comprados nos últimos ${m.window_minutes} min)/${m.window_minutes} − 1`,
       }),
       el("p", {
-        text: `α = ${m.alpha} · κ = ${m.kappa} · W = ${m.window_minutes} min · anchor = ${m.anchor}`,
+        text: `α = ${m.alpha} · κ = ${m.kappa} · W = ${m.window_minutes} min · âncora = ${m.anchor === "peak" ? "pico" : m.anchor}`,
       }),
       el("p", {
-        text: "Neutral 100 = peak life + break-even buys. Dotted line = pure bleed (nobody buys).",
+        text: "Neutro 100 = vida no pico + compras equilibrando a queima. Linha pontilhada = sangria pura (ninguém compra).",
       }),
     ])
   );
@@ -127,23 +181,23 @@ function renderPremarket(ticker, burn, trades, series) {
   }
   box.classList.add("show");
   clear(box);
-  const since = ticker.genesis_at ? fmtTime(ticker.genesis_at) : "genesis";
-  box.appendChild(el("h2", { text: "Pre-market" }));
-  box.appendChild(el("p", { text: `Gathering data since ${since}` }));
+  const since = ticker.genesis_at ? fmtTime(ticker.genesis_at) : "a gênese";
+  box.appendChild(el("h2", { text: "Pré-mercado" }));
+  box.appendChild(el("p", { text: `Coletando dados desde ${since}` }));
   box.appendChild(
     el("p", {
-      text: `Trades since inception: ${(trades.trades || []).length}`,
+      text: `Trades desde o início: ${(trades.trades || []).length}`,
     })
   );
   box.appendChild(
     el("p", {
-      text: `Minutes bought ${fmtNum(burn.minutes_bought_total, 1)} vs burned ${fmtNum(burn.minutes_burned_total, 1)} · coverage ${fmtNum(burn.coverage_pct, 1)}%`,
+      text: `Minutos comprados ${fmtNum(burn.minutes_bought_total, 1)} vs queimados ${fmtNum(burn.minutes_burned_total, 1)} · cobertura ${fmtNum(burn.coverage_pct, 1)}%`,
     })
   );
   box.appendChild(
     el("p", {
       className: "mono",
-      text: burn.label || "tip-equivalent at R$1 = 1 min",
+      text: burn.label || TIP_EQ,
     })
   );
 }
@@ -152,18 +206,21 @@ function renderBurn(data) {
   const root = document.getElementById("burnBody");
   clear(root);
   const rows = [
-    ["Burn wall", `R$ ${fmtNum(data.burn_wall_brl_per_hour, 0)}/h`],
-    ["Current pace", `R$ ${fmtNum(data.pace_brl_per_hour, 1)}/h`],
-    ["Coverage", `${fmtNum(data.coverage_pct, 1)}%`],
-    ["Deficit", `R$ ${fmtNum(data.deficit_brl_per_hour, 1)}/h`],
-    ["Bought", `${fmtNum(data.minutes_bought_total, 1)} min`],
-    ["Burned", `${fmtNum(data.minutes_burned_total, 1)} min`],
-    ["Runway ETA", data.runway_eta ? fmtTime(data.runway_eta) : "—"],
+    ["Parede de queima", `R$ ${fmtNum(data.burn_wall_brl_per_hour, 0)}/h`],
+    ["Ritmo atual", `R$ ${fmtNum(data.pace_brl_per_hour, 1)}/h`],
+    ["Cobertura", `${fmtNum(data.coverage_pct, 1)}%`],
+    ["Déficit", `R$ ${fmtNum(data.deficit_brl_per_hour, 1)}/h`],
+    ["Comprado", `${fmtNum(data.minutes_bought_total, 1)} min`],
+    ["Queimado", `${fmtNum(data.minutes_burned_total, 1)} min`],
+    ["ETA da pista", data.runway_eta ? fmtTime(data.runway_eta) : "—"],
   ];
   const grid = el("div", { className: "burn-grid" });
   for (const [label, value] of rows) {
     grid.appendChild(
-      el("div", {}, [el("span", { text: label }), el("strong", { className: "mono", text: value })])
+      el("div", { className: "burn-row" }, [
+        termLabel(label),
+        el("strong", { className: "mono", text: value }),
+      ])
     );
   }
   const pct = Math.max(0, Math.min(100, data.coverage_pct || 0));
@@ -171,7 +228,17 @@ function renderBurn(data) {
   meter.firstChild.style.width = `${pct}%`;
   root.appendChild(grid);
   root.appendChild(meter);
-  root.appendChild(el("p", { className: "hint mono", text: data.label || "" }));
+  root.appendChild(
+    el("p", {
+      className: "hint mono term",
+      text: data.label || TIP_EQ,
+      attrs: {
+        tabindex: "0",
+        "data-tip":
+          "Todo valor em R$ nesta tela é equivalente em tip: R$1 doado como tip = +1 minuto no timer. Subs e bits dão tempo a outras taxas.",
+      },
+    })
+  );
 }
 
 function renderTape(data) {
@@ -180,16 +247,25 @@ function renderTape(data) {
   const list = el("ul", { className: "tape" });
   const trades = data.trades || [];
   if (!trades.length) {
-    list.appendChild(el("li", { text: "No trades since genesis yet." }));
+    list.appendChild(el("li", { text: "Nenhum trade desde a gênese ainda." }));
   }
   for (const t of trades) {
+    const label = t.likely_label || "trade provável";
     list.appendChild(
       el("li", {}, [
-        el("strong", { text: t.likely_label || "likely trade" }),
+        el("strong", {
+          className: "term",
+          text: label,
+          attrs: {
+            tabindex: "0",
+            "data-tip":
+              "Classificação “provável” pelo tamanho do grant em segundos (regras do timer). O feed não informa a origem real nem o nome do doador.",
+          },
+        }),
         el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
         el("span", {
           className: "meta mono",
-          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s · ${t.tip_equivalent_label || data.label || ""}`,
+          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s · ${t.tip_equivalent_label || data.label || TIP_EQ}`,
         }),
       ])
     );
@@ -202,16 +278,26 @@ function renderRecords(data) {
   clear(root);
   const list = el("ul", { className: "records" });
   const items = [
-    ["Best hour", data.best_hour ? `${fmtTime(data.best_hour.at)} · ${fmtNum(data.best_hour.bought_min, 1)} min · m=${fmtNum(data.best_hour.m, 2)}` : "—"],
-    ["Worst hour", data.worst_hour ? `${fmtTime(data.worst_hour.at)} · ${fmtNum(data.worst_hour.bought_min, 1)} min` : "—"],
-    ["Biggest hour net", `${fmtNum(data.biggest_hour_net_min, 1)} min`],
-    ["Longest above break-even", `${data.longest_above_breakeven_hours || 0} h`],
-    ["Longest dry spell", `${data.longest_dry_spell_hours || 0} h`],
+    [
+      "Melhor hora",
+      data.best_hour
+        ? `${fmtTime(data.best_hour.at)} · ${fmtNum(data.best_hour.bought_min, 1)} min · m=${fmtNum(data.best_hour.m, 2)}`
+        : "—",
+    ],
+    [
+      "Pior hora",
+      data.worst_hour
+        ? `${fmtTime(data.worst_hour.at)} · ${fmtNum(data.worst_hour.bought_min, 1)} min`
+        : "—",
+    ],
+    ["Maior líquido na hora", `${fmtNum(data.biggest_hour_net_min, 1)} min`],
+    ["Mais tempo acima do equilíbrio", `${data.longest_above_breakeven_hours || 0} h`],
+    ["Maior estiagem", `${data.longest_dry_spell_hours || 0} h`],
   ];
   for (const [k, v] of items) {
     list.appendChild(
       el("li", {}, [
-        el("span", { text: k }),
+        termLabel(k),
         el("strong", { className: "mono", text: v }),
       ])
     );
@@ -223,9 +309,12 @@ function renderRecords(data) {
       .join(" · ");
     list.appendChild(
       el("li", {}, [
-        el("span", { text: "Size mix" }),
+        termLabel("Mix de tamanhos"),
         el("strong", { className: "mono", text: dist }),
-        el("span", { className: "meta", text: "likely classes only — no donor names exist in the data" }),
+        el("span", {
+          className: "meta",
+          text: "só classes prováveis — não existem nomes de doadores nos dados",
+        }),
       ])
     );
   }
@@ -249,7 +338,9 @@ async function refresh() {
     renderRecords(records);
   } catch (err) {
     console.error(err);
-    document.getElementById("pulse").className = "pulse degraded";
+    const pulse = document.getElementById("pulse");
+    pulse.className = "pulse degraded";
+    pulse.title = "Erro ao carregar dados";
   }
 }
 

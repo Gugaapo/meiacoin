@@ -35,15 +35,15 @@ TF_SECONDS = {
 
 # Likely class by exact granted_seconds (rules from feed).
 LIKELY_CLASS = {
-    1800: ("kick_sub", "likely Kick sub (1800s)"),
-    300: ("bits_100", "likely 100 bits (300s)"),
-    180: ("tier3_or_yt", "likely Tier 3 / YouTube member (180s)"),
-    120: ("tier2", "likely Tier 2 (120s)"),
-    60: ("tier1_or_tip", "likely Tier 1 / tip (60s)"),
-    30: ("prime", "likely Prime (30s)"),
+    1800: ("kick_sub", "provável sub Kick (1800s)"),
+    300: ("bits_100", "prováveis 100 bits (300s)"),
+    180: ("tier3_or_yt", "provável Tier 3 / membro YouTube (180s)"),
+    120: ("tier2", "provável Tier 2 (120s)"),
+    60: ("tier1_or_tip", "provável Tier 1 / tip (60s)"),
+    30: ("prime", "provável Prime (30s)"),
 }
 
-TIP_LABEL = "tip-equivalent at R$1 = 1 min"
+TIP_LABEL = "equivalente em tip a R$1 = 1 min"
 
 
 def _as_utc(dt: Any) -> datetime | None:
@@ -105,7 +105,7 @@ def classify_grant(seconds: int) -> tuple[str, str]:
         if abs(seconds - known) <= 5:
             return LIKELY_CLASS[known]
     mins = seconds / 60.0
-    return ("unknown", f"likely ~{mins:.1f} min tip/merge ({seconds}s)")
+    return ("unknown", f"provável ~{mins:.1f} min tip/fusão ({seconds}s)")
 
 
 async def current_state() -> dict[str, Any]:
