@@ -151,21 +151,23 @@ function renderTicker(data) {
 
 function updateFormulaTooltip() {
   const box = document.getElementById("formulaTip");
-  const m = modelConstants || { alpha: 1.0, kappa: 0.05, window_minutes: 60, anchor: "peak" };
   clear(box);
   box.appendChild(
     el("div", {}, [
-      el("code", {
-        text: "P = 100 · L^α · e^(κ·m)",
+      el("p", {
+        text: "Esse número grande é o “preço” do MeiaCoin — uma nota de como o timer do subathon está se comportando.",
       }),
       el("p", {
-        text: `L = R/R_ref (fração da vida de pico restante) · m = (minutos comprados nos últimos ${m.window_minutes} min)/${m.window_minutes} − 1`,
+        text: "Perto de 100: o timer está saudável. Alguém está mandando Pix/sub no ritmo em que o relógio gasta tempo.",
       }),
       el("p", {
-        text: `α = ${m.alpha} · κ = ${m.kappa} · W = ${m.window_minutes} min · âncora = ${m.anchor === "peak" ? "pico" : m.anchor}`,
+        text: "Exemplo: se ninguém doa por uma hora, o relógio queima sozinho e o preço cai de leve (tipo ~95). Se alguém manda um Pix forte, o preço sobe na hora e depois vai esfriando aos poucos.",
       }),
       el("p", {
-        text: "Neutro 100 = vida no pico + compras equilibrando a queima. Linha pontilhada = sangria pura (ninguém compra).",
+        text: "Quanto menos tempo restar no subathon, mais barato o MeiaCoin fica — a vida do timer está acabando.",
+      }),
+      el("p", {
+        text: "A linha pontilhada no gráfico é o “e se ninguém mais doar?”: o caminho que o preço seguiria só com o relógio rodando.",
       }),
     ])
   );
