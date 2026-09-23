@@ -265,7 +265,7 @@ function renderTape(data) {
         el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
         el("span", {
           className: "meta mono",
-          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s · ${t.tip_equivalent_label || data.label || TIP_EQ}`,
+          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s`,
         }),
       ])
     );
