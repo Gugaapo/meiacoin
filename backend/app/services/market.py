@@ -39,11 +39,11 @@ LIKELY_CLASS = {
     300: ("bits_100", "prováveis 100 bits (300s)"),
     180: ("tier3_or_yt", "provável Tier 3 / membro YouTube (180s)"),
     120: ("tier2", "provável Tier 2 (120s)"),
-    60: ("tier1_or_tip", "provável Tier 1 / tip (60s)"),
+    60: ("pix", "provável Pix (60s)"),
     30: ("prime", "provável Prime (30s)"),
 }
 
-TIP_LABEL = "equivalente em tip a R$1 = 1 min"
+TIP_LABEL = "equivalente em Pix a R$1 = 1 min"
 
 
 def _as_utc(dt: Any) -> datetime | None:
@@ -105,7 +105,7 @@ def classify_grant(seconds: int) -> tuple[str, str]:
         if abs(seconds - known) <= 5:
             return LIKELY_CLASS[known]
     mins = seconds / 60.0
-    return ("unknown", f"provável ~{mins:.1f} min tip/fusão ({seconds}s)")
+    return ("unknown", f"provável ~{mins:.1f} min Pix/fusão ({seconds}s)")
 
 
 async def current_state() -> dict[str, Any]:

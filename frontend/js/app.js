@@ -7,14 +7,14 @@ import {
 } from "./api.js";
 import { createMeiaChart } from "./chart.js";
 
-const TIP_EQ = "equivalente em tip a R$1 = 1 min";
+const TIP_EQ = "equivalente em Pix a R$1 = 1 min";
 
 /** Glossário: o que cada rótulo das seções significa. */
 const GLOSSARY = {
   "Parede de queima":
-    "Quanto em tip-equivalente (R$/h) é preciso comprar só para o timer ficar parado. O relógio queima 60 min por hora → R$60/h no peg.",
+    "Quanto em equivalente Pix (R$/h) é preciso comprar só para o timer ficar parado. O relógio queima 60 min por hora → R$60/h no peg.",
   "Ritmo atual":
-    "Média de minutos comprados por hora desde a gênese, convertida em R$/h tip-equivalente.",
+    "Média de minutos comprados por hora desde a gênese, convertida em R$/h equivalente Pix.",
   Cobertura:
     "Porcentagem da queima do relógio que as compras cobriram (comprado ÷ queimado).",
   Déficit:
@@ -36,7 +36,7 @@ const GLOSSARY = {
   "Maior estiagem":
     "Maior sequência contínua de horas sem nenhuma compra.",
   "Mix de tamanhos":
-    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick). Classes são “prováveis” — o feed não diz a origem com certeza.",
+    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick, 60s = Pix). Classes são “prováveis” — o feed não diz a origem com certeza.",
 };
 
 const el = (tag, props = {}, kids = []) => {
@@ -235,7 +235,7 @@ function renderBurn(data) {
       attrs: {
         tabindex: "0",
         "data-tip":
-          "Todo valor em R$ nesta tela é equivalente em tip: R$1 doado como tip = +1 minuto no timer. Subs e bits dão tempo a outras taxas.",
+          "Todo valor em R$ nesta tela é equivalente em Pix: R$1 via Pix = +1 minuto no timer. Subs e bits dão tempo a outras taxas.",
       },
     })
   );
@@ -259,7 +259,7 @@ function renderTape(data) {
           attrs: {
             tabindex: "0",
             "data-tip":
-              "Classificação “provável” pelo tamanho do grant em segundos (regras do timer). O feed não informa a origem real nem o nome do doador.",
+              "Classificação “provável” pelo tamanho do grant em segundos (regras do timer). Grants de 60s são tratados como Pix (mais comum que Tier 1). O feed não informa a origem real nem o nome do doador.",
           },
         }),
         el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
