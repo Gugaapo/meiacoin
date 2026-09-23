@@ -296,8 +296,32 @@ header.ticker {
 }
 .tape .meta, .records .meta { color: var(--text-muted); font-size: 0.75rem; grid-column: 1 / -1; }
 
-footer.note {
+footer.site-footer {
   margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
   color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+footer.site-footer .note {
+  margin-bottom: 0.65rem;
   font-size: 0.75rem;
+}
+footer.site-footer a {
+  color: var(--accent-green);
+  text-decoration: none;
+}
+footer.site-footer a:hover {
+  text-decoration: underline;
+}
+.footer-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+}
+.footer-github-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
 }
