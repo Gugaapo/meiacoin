@@ -111,7 +111,6 @@ function clear(node) {
 
 let currentTf = "5m";
 let chartApi = null;
-let modelConstants = null;
 
 function renderTicker(data) {
   const price = document.getElementById("price");
@@ -145,7 +144,6 @@ function renderTicker(data) {
   document.getElementById("mcap").textContent = fmtDuration(data.market_cap_seconds);
   document.getElementById("lm").textContent = `L=${fmtNum(data.L, 4)} · m=${fmtNum(data.m, 2)}`;
 
-  modelConstants = data.model;
   updateFormulaTooltip();
 }
 
