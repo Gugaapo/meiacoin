@@ -46,10 +46,26 @@ def get_db() -> AsyncIOMotorDatabase:
 
 
 async def ensure_indexes(db: AsyncIOMotorDatabase) -> None:
-    await db.feed_samples.create_index("at", expireAfterSeconds=FEED_SAMPLES_TTL_SECONDS)
-    await db.feed_samples.create_index([("at", 1)])
+    # Single ascending TTL index on feed_samples.at (30 days).
+    existing = await db.feed_samples.index_information()
+    ttl_ok = False
+    for name, info in existing.items():
+        keys = info.get("key")
+        # Motor may return SON/dict or list of pairs.
+        if isinstance(keys, dict):
+            key_pairs = list(keys.items())
+        else:
+            key_pairs = list(keys or [])
+        if key_pairs == [("at", 1)]:
+            if info.get("expireAfterSeconds") == FEED_SAMPLES_TTL_SECONDS:
+                ttl_ok = True
+            else:
+                await db.feed_samples.drop_index(name)
+    if not ttl_ok:
+        await db.feed_samples.create_index(
+            [("at", 1)],
+            expireAfterSeconds=FEED_SAMPLES_TTL_SECONDS,
+        )
     await db.events.create_index([("at", 1)])
     await db.events.create_index([("kind", 1), ("at", 1)])
-    await db.health.create_index("_id")
-    await db.records.create_index("_id")
     await db.daily.create_index([("day", 1)], unique=True)

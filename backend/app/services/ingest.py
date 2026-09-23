@@ -9,7 +9,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.database import get_db
-from app.services.math_ingest import Observation, derive_increment
+from app.services.math_ingest import Observation, derive_increment, parse_dt
 from app.services.timer_client import TimerFeedError, client as timer_client
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,16 @@ GENESIS_ID = "genesis"
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _as_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if isinstance(dt, str):
+        return parse_dt(dt)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 async def _ensure_health_doc() -> dict[str, Any]:
@@ -88,14 +98,9 @@ async def record_observation(obs: Observation, *, prev: Observation | None) -> O
 
     health = await _ensure_health_doc()
     gap = None
-    if health.get("last_ok"):
-        last_ok = health["last_ok"]
-        if isinstance(last_ok, str):
-            from app.services.math_ingest import parse_dt
-
-            last_ok = parse_dt(last_ok)
-        if last_ok is not None:
-            gap = max(0, int((at - last_ok).total_seconds()))
+    last_ok = _as_utc(health.get("last_ok"))
+    if last_ok is not None:
+        gap = max(0, int((at - last_ok).total_seconds()))
 
     max_gap = int(health.get("max_gap_seconds") or 0)
     if gap is not None and gap > max_gap:
