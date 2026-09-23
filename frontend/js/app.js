@@ -36,7 +36,7 @@ const GLOSSARY = {
   "Maior estiagem":
     "Maior sequência contínua de horas sem nenhuma compra.",
   "Mix de tamanhos":
-    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick, 60s = Pix). Classes são “prováveis” — o feed não diz a origem com certeza.",
+    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick, 60s = Pix). Classificação pelo tamanho — o feed não diz a origem com certeza.",
 };
 
 const el = (tag, props = {}, kids = []) => {
@@ -235,7 +235,7 @@ function renderBurn(data) {
       attrs: {
         tabindex: "0",
         "data-tip":
-          "Todo valor em R$ nesta tela é equivalente em Pix: R$1 via Pix = +1 minuto no timer. Subs e bits dão tempo a outras taxas.",
+          "Todo valor em R$ nesta tela é equivalente em Pix: R$1 via Pix = +1 minuto no timer. Subs dão tempo a outras taxas.",
       },
     })
   );
@@ -250,7 +250,7 @@ function renderTape(data) {
     list.appendChild(el("li", { text: "Nenhum trade desde a gênese ainda." }));
   }
   for (const t of trades) {
-    const label = t.likely_label || "trade provável";
+    const label = t.likely_label || "Pix";
     list.appendChild(
       el("li", {}, [
         el("strong", {
@@ -259,7 +259,7 @@ function renderTape(data) {
           attrs: {
             tabindex: "0",
             "data-tip":
-              "Classificação “provável” pelo tamanho do grant em segundos (regras do timer). Grants de 60s são tratados como Pix (mais comum que Tier 1). O feed não informa a origem real nem o nome do doador.",
+              "Classificação pelo tamanho do grant em segundos (regras do timer). 60s e 300s contam como Pix. O feed não informa a origem real nem o nome do doador.",
           },
         }),
         el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),

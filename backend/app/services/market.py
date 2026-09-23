@@ -33,14 +33,15 @@ TF_SECONDS = {
     "1d": 86400,
 }
 
-# Likely class by exact granted_seconds (rules from feed).
+# Class by granted_seconds (rules of thumb for the tape — no donor source in the feed).
+# 60s and 300s are treated as Pix (bits are rare on this stream).
 LIKELY_CLASS = {
-    1800: ("kick_sub", "provável sub Kick (1800s)"),
-    300: ("bits_100", "prováveis 100 bits (300s)"),
-    180: ("tier3_or_yt", "provável Tier 3 / membro YouTube (180s)"),
-    120: ("tier2", "provável Tier 2 (120s)"),
-    60: ("pix", "provável Pix (60s)"),
-    30: ("prime", "provável Prime (30s)"),
+    1800: ("kick_sub", "Sub Kick (1800s)"),
+    300: ("pix", "Pix (300s)"),
+    180: ("tier3_or_yt", "Tier 3 / membro YouTube (180s)"),
+    120: ("tier2", "Tier 2 (120s)"),
+    60: ("pix", "Pix (60s)"),
+    30: ("prime", "Prime (30s)"),
 }
 
 TIP_LABEL = "equivalente em Pix a R$1 = 1 min"
@@ -100,12 +101,12 @@ def _stale_flags(health: dict, settings) -> tuple[bool, bool]:
 def classify_grant(seconds: int) -> tuple[str, str]:
     if seconds in LIKELY_CLASS:
         return LIKELY_CLASS[seconds]
-    # Nearest known size for odd merges
+    # Nearest known size for odd windows
     for known in (1800, 300, 180, 120, 60, 30):
         if abs(seconds - known) <= 5:
             return LIKELY_CLASS[known]
     mins = seconds / 60.0
-    return ("unknown", f"provável ~{mins:.1f} min Pix/fusão ({seconds}s)")
+    return ("pix", f"Pix (~{mins:.1f} min)")
 
 
 async def current_state() -> dict[str, Any]:
