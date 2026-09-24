@@ -40,9 +40,12 @@ Calibrated against real data: on the measured 24 hours it printed min 89.53, max
 
 ## Data source
 
-The public timer feed at `meiaum.vinnytasso.com.br/api/v1/timer`, polled server-side. The app
-collects its own series from its first run — the feed serves current state only, so no history can
-be backfilled and nothing is fabricated.
+The public timer feed at `meiaum.vinnytasso.com.br/api/v1/timer`, polled server-side (~15s),
+plus `GET /api/v1/timer/stream` (SSE) for Twitch/Pixie events and faster `timer.updated`
+snapshots. Grants (buys) still come from `ends_at` deltas on the poller so we never
+double-count; SSE events are correlated to label the trade tape.
+
+See [docs/timer-stream-events.md](docs/timer-stream-events.md) for payload shapes.
 
 ## Economics
 
@@ -53,9 +56,10 @@ time at their own rates.
 
 ## Limitations
 
-- No donor identity exists anywhere in the data — the trade tape shows size and time, never a name.
+- Twitch SSE can name donors and origin when an event matches a grant window; Kick/YouTube and
+  unmatched sizes still use size heuristics.
 - History begins at this app's first run; there is nothing earlier to show.
-- Buy timestamps are only as precise as the poll interval.
+- Buy timestamps are only as precise as the poll interval (SSE improves UI freshness, not grant math).
 
 ## Running locally
 
