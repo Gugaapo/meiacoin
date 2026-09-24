@@ -71,7 +71,7 @@
       <div id="burnBody"></div>
     </article>
     <article class="panel">
-      <h3 class="term" tabindex="0" data-tip="Fita de negócios: cada aumento detectado no ends_at do timer vira um “trade”. Mostra tamanho, horário e classe (sub, Pix…). Valores em R$ são equivalentes em Pix (R$1 = +1 min no timer). Nunca há nome de doador — o feed não tem identidade.">Fita de trades</h3>
+      <h3 class="term" tabindex="0" data-tip="Fita de negócios: cada aumento detectado no ends_at do timer vira um “trade”. Quando o SSE da MeiaUm manda sub/gift/cheer, o trade mostra origem e nome; senão, classifica pelo tamanho. Valores em R$ são equivalentes em Pix (R$1 = +1 min no timer).">Fita de trades</h3>
       <div id="tapeBody"></div>
     </article>
     <article class="panel">
@@ -82,7 +82,7 @@
 
   <footer class="site-footer">
     <p class="note">
-      Peg: R$1 via Pix = +1 minuto. Valores em R$ são equivalentes em Pix. Não existem nomes de doadores no feed.
+      Peg: R$1 via Pix = +1 minuto. Valores em R$ são equivalentes em Pix. Origem dos trades via SSE Twitch/Pixie quando dá para correlacionar; Kick/YouTube e janelas sem evento continuam por tamanho.
     </p>
     <p>
       by:

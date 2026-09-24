@@ -36,7 +36,7 @@ const GLOSSARY = {
   "Maior estiagem":
     "Maior sequência contínua de horas sem nenhuma compra.",
   "Mix de tamanhos":
-    "Distribuição dos tamanhos dos grants (ex.: 1800s = sub Kick, 60s = Pix). Classificação pelo tamanho — o feed não diz a origem com certeza.",
+    "Distribuição dos tamanhos dos grants. Quando o SSE da MeiaUm atribui a origem (sub, gift, bits), usamos isso; senão, classifica pelo tamanho.",
 };
 
 const el = (tag, props = {}, kids = []) => {
@@ -168,7 +168,7 @@ function updateFormulaTooltip() {
         text: "No gráfico: a linha colorida é o preço ao longo do tempo. Verde = subindo, vermelho = caindo. A linha pontilhada é o “e se ninguém mais doar?”.",
       }),
       el("p", {
-        text: "As barrinhas embaixo mostram quanto tempo foi comprado naquele pedaço (Pix, sub, etc.). Barra alta = muita doação; barra baixinha ou vazia = silêncio.",
+        text: "As barrinhas embaixo mostram quanto tempo foi comprado naquele pedaço (Pix, sub, etc.). Barra alta = muita doação; barra baixinha ou vazia = meiaum em extrema pobreza.",
       }),
     ])
   );
@@ -254,6 +254,10 @@ function renderTape(data) {
   }
   for (const t of trades) {
     const label = t.likely_label || "Pix";
+    const who = t.user_name ? ` · ${t.user_name}` : "";
+    const tip = t.attributed
+      ? "Origem via SSE Twitch/Pixie da MeiaUm, correlacionada com o aumento do timer."
+      : "Classificação pelo tamanho do grant (heurística). Sem evento Twitch/Pixie correspondente na janela.";
     list.appendChild(
       el("li", {}, [
         el("strong", {
@@ -261,14 +265,13 @@ function renderTape(data) {
           text: label,
           attrs: {
             tabindex: "0",
-            "data-tip":
-              "Classificação pelo tamanho do grant em segundos (regras do timer). 60s e 300s contam como Pix. O feed não informa a origem real nem o nome do doador.",
+            "data-tip": tip,
           },
         }),
         el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
         el("span", {
           className: "meta mono",
-          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s`,
+          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s${who}`,
         }),
       ])
     );
@@ -316,7 +319,7 @@ function renderRecords(data) {
         el("strong", { className: "mono", text: dist }),
         el("span", {
           className: "meta",
-          text: "só classes prováveis — não existem nomes de doadores nos dados",
+          text: "SSE Twitch quando disponível; senão classes por tamanho",
         }),
       ])
     );
