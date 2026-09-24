@@ -1,4 +1,4 @@
-"""15s timer poller: feed_samples, events, genesis, health."""
+"""15s timer poller + SSE feed_events / attribution."""
 from __future__ import annotations
 
 import asyncio
@@ -9,7 +9,9 @@ from typing import Any
 
 from app.config import get_settings
 from app.database import get_db
+from app.services import attribution as attr
 from app.services.math_ingest import Observation, derive_increment, parse_dt
+from app.services.sse_client import stream_client
 from app.services.timer_client import TimerFeedError, client as timer_client
 
 logger = logging.getLogger(__name__)
@@ -171,8 +173,87 @@ async def record_observation(obs: Observation, *, prev: Observation | None) -> O
                     event["raw_delta_seconds"],
                     precision,
                 )
+                if store_kind == "grant" and event["granted_seconds"] > 0:
+                    try:
+                        await attr.attribute_grant(
+                            grant_at=at,
+                            granted_seconds=int(event["granted_seconds"]),
+                            precision_seconds=precision,
+                        )
+                    except Exception:
+                        logger.exception("Grant attribution failed")
 
     return obs
+
+
+async def _apply_timer_updated(payload: dict[str, Any]) -> None:
+    """Refresh latest sample from SSE without creating grants (poll owns deltas).
+
+    Skip writing a sample if ends_at is missing — that would blank the ticker.
+    """
+    current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
+    if not current:
+        return
+    db = get_db()
+    now = _utc_now()
+    ends_at = parse_dt(current.get("ends_at"))
+    observed = parse_dt(payload.get("observed_at")) or now
+    # Merge rules from last poll sample when SSE omits them.
+    last = await db.feed_samples.find_one(sort=[("at", -1)])
+    if ends_at is None:
+        ends_at = parse_dt((last or {}).get("ends_at"))
+        if ends_at is None:
+            logger.warning("Ignoring timer.updated without ends_at")
+            return
+    rules = (last or {}).get("rules") if isinstance((last or {}).get("rules"), dict) else {}
+    sample = {
+        "at": now,
+        "ends_at": ends_at,
+        "observed_at": observed,
+        "seconds": current.get("seconds"),
+        "value": current.get("value"),
+        "state": str(current.get("state") or (last or {}).get("state") or "unavailable"),
+        "direction": str(current.get("direction") or (last or {}).get("direction") or "increase"),
+        "paused": bool(current.get("paused")) if "paused" in current else bool((last or {}).get("paused")),
+        "paused_at": (last or {}).get("paused_at"),
+        "locked": bool(current.get("locked")) if "locked" in current else bool((last or {}).get("locked")),
+        "status": (last or {}).get("status"),
+        "rules": rules,
+        "source": "sse",
+    }
+    await db.feed_samples.insert_one(sample)
+    await _bump_health(
+        last_ok=now,
+        status="ok",
+        last_ends_at=ends_at,
+        last_state=sample["state"],
+        last_paused=sample["paused"],
+        last_direction=sample["direction"],
+        last_sse_at=now,
+    )
+
+
+async def handle_stream_event(
+    event_type: str,
+    payload: dict[str, Any] | None,
+    sse_id: str | None,
+) -> None:
+    if event_type == "handshake":
+        await _bump_health(last_sse_handshake_at=_utc_now(), sse_connected=True)
+        return
+    if event_type == "timer.updated" and isinstance(payload, dict):
+        await _apply_timer_updated(payload)
+        await attr.store_feed_event(event_type, payload, sse_id=sse_id)
+        return
+    if event_type.startswith("twitch.") or event_type.startswith("pixie.") or event_type.startswith("timer."):
+        await attr.store_feed_event(event_type, payload, sse_id=sse_id)
+        await _inc_health("sse_events", 1)
+        return
+    logger.debug("Ignoring SSE event type=%s", event_type)
+
+
+async def stream_forever(stop: asyncio.Event) -> None:
+    await stream_client.run_forever(stop, handle_stream_event)
 
 
 async def poll_forever(stop: asyncio.Event) -> None:

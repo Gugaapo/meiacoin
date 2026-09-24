@@ -33,7 +33,7 @@ TF_SECONDS = {
     "1d": 86400,
 }
 
-# Class by granted_seconds (rules of thumb for the tape — no donor source in the feed).
+# Class by granted_seconds when SSE attribution is missing.
 # 60s and 300s are treated as Pix (bits are rare on this stream).
 LIKELY_CLASS = {
     1800: ("kick_sub", "Sub Kick (1800s)"),
@@ -342,7 +342,16 @@ async def trades_payload(limit: int = 100) -> dict:
     state = await current_state()
     trades = []
     for at, secs, doc in reversed(state["grants_full"][-limit:]):
-        cls, label = classify_grant(secs)
+        attribution = doc.get("attribution") if isinstance(doc.get("attribution"), dict) else {}
+        if attribution.get("attributed"):
+            cls = str(attribution.get("class_code") or "attributed")
+            label = str(attribution.get("label") or classify_grant(secs)[1])
+            user_name = attribution.get("user_name")
+            attributed = True
+        else:
+            cls, label = classify_grant(secs)
+            user_name = None
+            attributed = False
         trades.append(
             {
                 "at": _iso(at),
@@ -350,6 +359,8 @@ async def trades_payload(limit: int = 100) -> dict:
                 "granted_minutes": round(secs / 60.0, 2),
                 "likely_class": cls,
                 "likely_label": label,
+                "user_name": user_name,
+                "attributed": attributed,
                 "precision_seconds": int(doc.get("precision_seconds") or 0),
                 "tip_equivalent_brl": round(secs / 60.0, 2),
                 "tip_equivalent_label": TIP_LABEL,

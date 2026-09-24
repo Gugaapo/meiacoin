@@ -23,10 +23,13 @@ class Settings(BaseSettings):
     cors_origins: str = "https://tossemideia.cloud"
 
     timer_feed_url: str = "https://meiaum.vinnytasso.com.br/api/v1/timer"
+    timer_stream_url: str = "https://meiaum.vinnytasso.com.br/api/v1/timer/stream"
+    timer_stream_enabled: bool = True
     timer_poll_seconds: int = 15
     timer_stale_seconds: int = 180
     timer_degraded_seconds: int = 45
     pause_credit_tolerance_seconds: int = 60
+    attribution_window_seconds: int = 90
 
     model_alpha: float = 1.0
     model_kappa: float = 0.05
