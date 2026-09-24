@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     pause_credit_tolerance_seconds: int = 60
     attribution_window_seconds: int = 90
 
+    twitch_oauth_token: str = ""
+    twitch_client_id: str = ""
+    twitch_client_secret: str = ""
+    twitch_refresh_token: str = ""
+    twitch_channel: str = "omeiaum"
+    twitch_clips_enabled: bool = True
+    twitch_clip_duration: float = 30.0
+    twitch_clip_pad_seconds: float = 15.0
+
     model_alpha: float = 1.0
     model_kappa: float = 0.05
     model_window_minutes: float = 60.0
@@ -46,6 +55,14 @@ class Settings(BaseSettings):
     @property
     def is_timer_configured(self) -> bool:
         return bool(self.timer_feed_url)
+
+    @property
+    def twitch_clips_active(self) -> bool:
+        return bool(
+            self.twitch_clips_enabled
+            and self.twitch_oauth_token
+            and self.twitch_client_id
+        )
 
     def public_model_constants(self) -> dict:
         return {

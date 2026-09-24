@@ -287,6 +287,13 @@ header.ticker {
   overflow: auto;
   font-size: 0.85rem;
 }
+.tape {
+  overflow: hidden;
+  scrollbar-width: none;
+}
+.tape::-webkit-scrollbar {
+  display: none;
+}
 .tape li, .records li {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -295,6 +302,53 @@ header.ticker {
   padding-bottom: 0.4rem;
 }
 .tape .meta, .records .meta { color: var(--text-muted); font-size: 0.75rem; grid-column: 1 / -1; }
+.tape-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.tape-clip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-green);
+  text-decoration: none;
+  opacity: 0.75;
+  line-height: 0;
+}
+.tape-clip:hover,
+.tape-clip:focus-visible {
+  opacity: 1;
+}
+.tape-clip-icon {
+  display: block;
+}
+.tape-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+}
+.tape-pager-btn {
+  background: transparent;
+  border: 1px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-green);
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.tape-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.tape-pager-meta {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
 
 footer.site-footer {
   margin-top: 1.5rem;

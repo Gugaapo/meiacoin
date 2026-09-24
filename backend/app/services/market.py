@@ -352,6 +352,11 @@ async def trades_payload(limit: int = 100) -> dict:
             cls, label = classify_grant(secs)
             user_name = None
             attributed = False
+        clip_url = attribution.get("clip_url") if attributed else None
+        if not isinstance(clip_url, str) or not clip_url.strip():
+            clip_url = None
+        else:
+            clip_url = clip_url.strip()
         trades.append(
             {
                 "at": _iso(at),
@@ -364,6 +369,7 @@ async def trades_payload(limit: int = 100) -> dict:
                 "precision_seconds": int(doc.get("precision_seconds") or 0),
                 "tip_equivalent_brl": round(secs / 60.0, 2),
                 "tip_equivalent_label": TIP_LABEL,
+                "clip_url": clip_url,
             }
         )
     return {

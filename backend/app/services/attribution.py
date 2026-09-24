@@ -8,6 +8,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.database import get_db
+from app.services.clips import clip_url_from_feed_docs
 from app.services.math_ingest import parse_dt
 
 logger = logging.getLogger(__name__)
@@ -404,7 +405,7 @@ async def attribute_grant(
         class_code = "bundle"
         user_name = names[0] if len(set(names)) == 1 else (", ".join(names) if names else None)
 
-    attribution = {
+    attribution: dict[str, Any] = {
         "source": types[0] if len(types) == 1 else "bundle",
         "sources": types,
         "feed_event_keys": keys,
@@ -413,6 +414,9 @@ async def attribute_grant(
         "user_name": user_name,
         "attributed": True,
     }
+    clip_url = clip_url_from_feed_docs(chosen)
+    if clip_url:
+        attribution["clip_url"] = clip_url
 
     await db.events.update_one(
         {"at": grant_at, "kind": "grant", "granted_seconds": granted_seconds},

@@ -245,7 +245,14 @@ async def handle_stream_event(
         await _apply_timer_updated(payload)
         await attr.store_feed_event(event_type, payload, sse_id=sse_id)
         return
-    if event_type.startswith("twitch.") or event_type.startswith("pixie.") or event_type.startswith("timer."):
+    if event_type.startswith("twitch.") or event_type.startswith("pixie."):
+        stored = await attr.store_feed_event(event_type, payload, sse_id=sse_id)
+        await _inc_health("sse_events", 1)
+        from app.services.clips import schedule_clip_for_event
+
+        schedule_clip_for_event(stored)
+        return
+    if event_type.startswith("timer."):
         await attr.store_feed_event(event_type, payload, sse_id=sse_id)
         await _inc_health("sse_events", 1)
         return

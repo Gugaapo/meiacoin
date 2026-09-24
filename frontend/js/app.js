@@ -8,6 +8,7 @@ import {
 import { createMeiaChart } from "./chart.js";
 
 const TIP_EQ = "equivalente em Pix a R$1 = 1 min";
+const TAPE_PAGE_SIZE = 10;
 
 /** Glossário: o que cada rótulo das seções significa. */
 const GLOSSARY = {
@@ -109,8 +110,136 @@ function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
+/** Twitch-style scissors clip icon (inline SVG). */
+function clipIconEl() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "tape-clip-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("fill", "currentColor");
+  path.setAttribute(
+    "d",
+    "M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6.5-11.5L14 4l7 7h-3z"
+  );
+  svg.appendChild(path);
+  return svg;
+}
+
 let currentTf = "5m";
 let chartApi = null;
+let tapePage = 0;
+let tapeTradesCache = [];
+
+function renderTapePage() {
+  renderTape({ trades: tapeTradesCache });
+}
+
+function renderTape(data) {
+  const root = document.getElementById("tapeBody");
+  clear(root);
+
+  const trades = data.trades || [];
+  tapeTradesCache = trades;
+  const pages = Math.max(1, Math.ceil(Math.max(trades.length, 1) / TAPE_PAGE_SIZE));
+  if (tapePage >= pages) tapePage = pages - 1;
+  if (tapePage < 0) tapePage = 0;
+
+  const list = el("ul", { className: "tape" });
+  if (!trades.length) {
+    list.appendChild(el("li", { text: "Nenhum trade desde a gênese ainda." }));
+    root.appendChild(list);
+    return;
+  }
+
+  const start = tapePage * TAPE_PAGE_SIZE;
+  const pageItems = trades.slice(start, start + TAPE_PAGE_SIZE);
+  for (const t of pageItems) {
+    const label = t.likely_label || "Pix";
+    const who = t.user_name ? ` · ${t.user_name}` : "";
+    const tip = t.attributed
+      ? "Origem via SSE Twitch/Pixie da MeiaUm, correlacionada com o aumento do timer."
+      : "Classificação pelo tamanho do grant (heurística). Sem evento Twitch/Pixie correspondente na janela.";
+    const valueKids = [
+      el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
+    ];
+    if (t.clip_url) {
+      valueKids.push(
+        el(
+          "a",
+          {
+            className: "tape-clip",
+            attrs: {
+              href: t.clip_url,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              title: "Abrir clip da doação no Twitch",
+              "aria-label": "Abrir clip da doação no Twitch",
+            },
+          },
+          [clipIconEl()]
+        )
+      );
+    }
+    list.appendChild(
+      el("li", {}, [
+        el("strong", {
+          className: "term",
+          text: label,
+          attrs: {
+            tabindex: "0",
+            "data-tip": tip,
+          },
+        }),
+        el("span", { className: "tape-value" }, valueKids),
+        el("span", {
+          className: "meta mono",
+          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s${who}`,
+        }),
+      ])
+    );
+  }
+  root.appendChild(list);
+
+  const pager = el("div", { className: "tape-pager" }, [
+    el("button", {
+      className: "tape-pager-btn",
+      text: "‹",
+      attrs: {
+        type: "button",
+        "aria-label": "Página anterior",
+        ...(tapePage <= 0 ? { disabled: "disabled" } : {}),
+      },
+      onClick: () => {
+        if (tapePage <= 0) return;
+        tapePage -= 1;
+        renderTapePage();
+      },
+    }),
+    el("span", {
+      className: "tape-pager-meta mono",
+      text: `página ${tapePage + 1} / ${pages}`,
+    }),
+    el("button", {
+      className: "tape-pager-btn",
+      text: "›",
+      attrs: {
+        type: "button",
+        "aria-label": "Próxima página",
+        ...(tapePage >= pages - 1 ? { disabled: "disabled" } : {}),
+      },
+      onClick: () => {
+        if (tapePage >= pages - 1) return;
+        tapePage += 1;
+        renderTapePage();
+      },
+    }),
+  ]);
+  root.appendChild(pager);
+}
 
 function renderTicker(data) {
   const price = document.getElementById("price");
@@ -242,41 +371,6 @@ function renderBurn(data) {
       },
     })
   );
-}
-
-function renderTape(data) {
-  const root = document.getElementById("tapeBody");
-  clear(root);
-  const list = el("ul", { className: "tape" });
-  const trades = data.trades || [];
-  if (!trades.length) {
-    list.appendChild(el("li", { text: "Nenhum trade desde a gênese ainda." }));
-  }
-  for (const t of trades) {
-    const label = t.likely_label || "Pix";
-    const who = t.user_name ? ` · ${t.user_name}` : "";
-    const tip = t.attributed
-      ? "Origem via SSE Twitch/Pixie da MeiaUm, correlacionada com o aumento do timer."
-      : "Classificação pelo tamanho do grant (heurística). Sem evento Twitch/Pixie correspondente na janela.";
-    list.appendChild(
-      el("li", {}, [
-        el("strong", {
-          className: "term",
-          text: label,
-          attrs: {
-            tabindex: "0",
-            "data-tip": tip,
-          },
-        }),
-        el("span", { className: "mono", text: `R$ ${fmtNum(t.tip_equivalent_brl, 1)}` }),
-        el("span", {
-          className: "meta mono",
-          text: `${fmtTime(t.at)} · ±${t.precision_seconds || "?"}s${who}`,
-        }),
-      ])
-    );
-  }
-  root.appendChild(list);
 }
 
 function renderRecords(data) {
