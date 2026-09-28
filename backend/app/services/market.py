@@ -9,7 +9,7 @@ from typing import Any
 from app.config import get_settings
 from app.database import get_db
 from app.model import (
-    bought_minutes_in_window,
+    bought_minutes_soft,
     compute_series,
     ends_at_at,
     flow,
@@ -142,15 +142,22 @@ async def current_state() -> dict[str, Any]:
         r_ref = max(R, remaining_seconds(e_genesis, genesis_at or now))
 
     L = level(R, r_ref) if r_ref > 0 else 1.0
-    bought = bought_minutes_in_window(now, grants)
+    hold_s = float(settings.model_flow_hold_minutes) * 60.0
+    tau_s = float(settings.model_flow_tau_minutes) * 60.0
+    bought = bought_minutes_soft(
+        now,
+        grants,
+        hold_seconds=hold_s,
+        tau_seconds=tau_s,
+    )
     m = flow(
         bought,
         window_minutes=settings.model_window_minutes,
         direction_sign=direction_sign,
     )
-    # While paused, clock isn't burning — treat burn baseline as paused-pro-rated approx
-    if paused:
-        m = flow(bought, window_minutes=settings.model_window_minutes, effective_burn_minutes=0.01)
+    # Pause must not shrink the burn baseline toward zero — with soft-weighted
+    # buys still in the book that detonates m (e^(κm) → astronomical price).
+    # Flow already reflects recent buys; L still tracks ends_at while paused.
 
     p = price(L, m, alpha=settings.model_alpha, kappa=settings.model_kappa)
     return {
@@ -210,6 +217,8 @@ async def build_price_path(step_seconds: int = 60) -> list[dict]:
         alpha=settings.model_alpha,
         kappa=settings.model_kappa,
         window_seconds=int(settings.model_window_minutes * 60),
+        hold_seconds=float(settings.model_flow_hold_minutes) * 60.0,
+        tau_seconds=float(settings.model_flow_tau_minutes) * 60.0,
         direction_sign=direction_sign,
     )
 
@@ -317,15 +326,7 @@ async def series_payload(tf: str = "1h", from_ts: str | None = None, to_ts: str 
         if to:
             bars = [b for b in bars if parse_dt(b["t"]) and parse_dt(b["t"]) <= to]
 
-    markers = []
-    for at, secs, doc in state["grants_full"]:
-        markers.append(
-            {
-                "t": _iso(at),
-                "granted_seconds": secs,
-                "precision_seconds": int(doc.get("precision_seconds") or 0),
-            }
-        )
+    markers = _bucket_markers(state["grants_full"], tf, bars)
 
     return {
         "model": settings.public_model_constants(),
@@ -335,6 +336,66 @@ async def series_payload(tf: str = "1h", from_ts: str | None = None, to_ts: str 
         "stale": state["stale"],
         "genesis_at": _iso(state["genesis_at"]),
     }
+
+
+def _bucket_markers(
+    grants_full: list[tuple[datetime, int, dict]],
+    tf: str,
+    bars: list[dict],
+) -> list[dict]:
+    """Merge grants into chart-tf buckets; 2+ buys become one marker with items."""
+    step = TF_SECONDS.get(tf, 3600)
+    bar_times = []
+    for b in bars:
+        bt = parse_dt(b.get("t"))
+        if bt:
+            bar_times.append(int(bt.timestamp()))
+    bar_times.sort()
+
+    buckets: dict[int, list[tuple[datetime, int, dict]]] = {}
+    for at, secs, doc in grants_full:
+        key = int(at.timestamp()) - (int(at.timestamp()) % step)
+        buckets.setdefault(key, []).append((at, secs, doc))
+
+    markers: list[dict] = []
+    for key in sorted(buckets.keys()):
+        group = buckets[key]
+        group.sort(key=lambda x: x[0], reverse=True)  # newest first
+        total = sum(secs for _, secs, _ in group)
+        # Align marker time to an existing bar (prefer exact bucket, else nearest <=)
+        marker_ts = key
+        if bar_times:
+            if key in bar_times:
+                marker_ts = key
+            else:
+                earlier = [t for t in bar_times if t <= key]
+                marker_ts = earlier[-1] if earlier else bar_times[0]
+        items = []
+        for at, secs, doc in group[:12]:
+            attribution = doc.get("attribution") if isinstance(doc.get("attribution"), dict) else {}
+            label = attribution.get("label") if attribution.get("attributed") else None
+            if not label:
+                label = classify_grant(secs)[1]
+            items.append(
+                {
+                    "t": _iso(at),
+                    "granted_seconds": secs,
+                    "label": label,
+                }
+            )
+            if attribution.get("user_name"):
+                items[-1]["user_name"] = attribution.get("user_name")
+        overflow = len(group) - len(items)
+        marker = {
+            "t": _iso(datetime.fromtimestamp(marker_ts, tz=UTC)),
+            "granted_seconds": total,
+            "count": len(group),
+            "items": items,
+        }
+        if overflow > 0:
+            marker["overflow"] = overflow
+        markers.append(marker)
+    return markers
 
 
 async def trades_payload(limit: int = 100) -> dict:

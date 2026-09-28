@@ -220,7 +220,30 @@ header.ticker {
   background: rgba(8, 20, 12, 0.65);
   margin-bottom: 1.5rem;
 }
-#chart { width: 100%; height: 100%; }
+#chart { width: 100%; height: 100%; position: relative; }
+
+.chart-marker-tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  max-width: min(280px, 70%);
+  padding: 0.45rem 0.55rem;
+  background: rgba(8, 18, 12, 0.94);
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.chart-marker-tip-title {
+  color: var(--accent-green);
+  margin-bottom: 0.25rem;
+}
+.chart-marker-tip-row {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .premarket {
   position: absolute;
@@ -302,6 +325,46 @@ header.ticker {
   padding-bottom: 0.4rem;
 }
 .tape .meta, .records .meta { color: var(--text-muted); font-size: 0.75rem; grid-column: 1 / -1; }
+.mix-block {
+  display: grid;
+  gap: 0.35rem;
+}
+.mix-chart {
+  display: grid;
+  gap: 0.3rem;
+  grid-column: 1 / -1;
+  margin-top: 0.15rem;
+}
+.mix-row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 38%) 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+.mix-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mix-bar-track {
+  height: 0.45rem;
+  background: rgba(46, 204, 113, 0.12);
+  overflow: hidden;
+}
+.mix-bar-track > i {
+  display: block;
+  height: 100%;
+  background: var(--accent-green);
+  width: 0%;
+}
+.mix-count {
+  font-size: 0.72rem;
+  color: var(--accent-green);
+  min-width: 1.4rem;
+  text-align: right;
+}
 .tape-value {
   display: inline-flex;
   align-items: center;

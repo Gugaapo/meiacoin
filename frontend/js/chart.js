@@ -73,6 +73,16 @@ export function createMeiaChart(container) {
   const LC = window.LightweightCharts;
   if (!LC) throw new Error("lightweight-charts not loaded");
 
+  const tipHost = container.parentElement || container;
+  if (getComputedStyle(tipHost).position === "static") {
+    tipHost.style.position = "relative";
+  }
+
+  const tip = document.createElement("div");
+  tip.className = "chart-marker-tip";
+  tip.hidden = true;
+  tipHost.appendChild(tip);
+
   const chart = LC.createChart(container, {
     layout: {
       background: { color: "transparent" },
@@ -99,6 +109,8 @@ export function createMeiaChart(container) {
 
   /** @type {ReturnType<typeof chart.addAreaSeries>[]} */
   let slopeSeries = [];
+  /** @type {Map<number, object>} */
+  let markerMeta = new Map();
 
   // Invisible full path — only for buy markers + crosshair (never paints the line).
   const markerSeries = chart.addLineSeries({
@@ -157,6 +169,77 @@ export function createMeiaChart(container) {
     return Math.floor(new Date(iso).getTime() / 1000);
   }
 
+  function hideTip() {
+    tip.hidden = true;
+    tip.innerHTML = "";
+  }
+
+  function showMarkerTip(meta, point) {
+    if (!meta || !meta.items || !meta.items.length) {
+      hideTip();
+      return;
+    }
+    const mins = (meta.granted_seconds / 60).toFixed(0);
+    const head =
+      meta.count > 1
+        ? `${mins}m · ${meta.count} compras`
+        : `${mins}m`;
+    const lines = meta.items.map((it) => {
+      const m = (it.granted_seconds / 60).toFixed(0);
+      const when = it.t ? formatChartTime(toUnix(it.t)) : "";
+      const who = it.user_name ? ` · ${it.user_name}` : "";
+      const label = it.label ? ` · ${it.label}` : "";
+      return `${when} · ${m}m${label}${who}`;
+    });
+    if (meta.overflow > 0) {
+      lines.push(`+${meta.overflow} mais`);
+    }
+    tip.innerHTML = "";
+    const title = document.createElement("div");
+    title.className = "chart-marker-tip-title";
+    title.textContent = head;
+    tip.appendChild(title);
+    for (const line of lines) {
+      const row = document.createElement("div");
+      row.className = "chart-marker-tip-row";
+      row.textContent = line;
+      tip.appendChild(row);
+    }
+    tip.hidden = false;
+    const pad = 12;
+    const tw = tip.offsetWidth || 160;
+    const th = tip.offsetHeight || 40;
+    let left = (point?.x ?? 0) + pad;
+    let top = (point?.y ?? 0) - th - pad;
+    if (left + tw > tipHost.clientWidth - 4) left = (point?.x ?? 0) - tw - pad;
+    if (top < 4) top = (point?.y ?? 0) + pad;
+    tip.style.left = `${Math.max(4, left)}px`;
+    tip.style.top = `${Math.max(4, top)}px`;
+  }
+
+  chart.subscribeCrosshairMove((param) => {
+    if (!param || param.time == null || !param.point) {
+      hideTip();
+      return;
+    }
+    const t = typeof param.time === "number" ? param.time : null;
+    if (t == null) {
+      hideTip();
+      return;
+    }
+    const meta = markerMeta.get(t);
+    if (!meta || !(meta.count >= 2 || (meta.items && meta.items.length > 1))) {
+      // Still show single-item tip when hovering the marker bar
+      if (meta && meta.items && meta.items.length === 1) {
+        showMarkerTip(meta, param.point);
+        return;
+      }
+      hideTip();
+      return;
+    }
+    showMarkerTip(meta, param.point);
+  });
+
   function render(seriesPayload) {
     const bars = seriesPayload.bars || [];
     const priceData = [];
@@ -208,14 +291,25 @@ export function createMeiaChart(container) {
     neutralLine.setData(neutralData);
     volumeSeries.setData(volData);
 
-    const markers = (seriesPayload.markers || []).map((m) => ({
-      time: toUnix(m.t),
-      position: "belowBar",
-      color: "#7fff00",
-      shape: "arrowUp",
-      text: `${(m.granted_seconds / 60).toFixed(0)}m`,
-    }));
+    markerMeta = new Map();
+    // Hide tiny buys on the chart — they clutter; full tape still lists them.
+    const MIN_MARKER_SECONDS = 600; // 10 minutes total in the bucket
+    const markers = (seriesPayload.markers || [])
+      .filter((m) => (m.granted_seconds || 0) >= MIN_MARKER_SECONDS)
+      .map((m) => {
+        const time = toUnix(m.t);
+        markerMeta.set(time, m);
+        const mins = (m.granted_seconds / 60).toFixed(0);
+        return {
+          time,
+          position: "belowBar",
+          color: "#7fff00",
+          shape: "arrowUp",
+          text: `${mins}m`,
+        };
+      });
     markerSeries.setMarkers(markers);
+    hideTip();
 
     if (warmEnd != null && priceData.length) {
       chart.timeScale().setVisibleRange({

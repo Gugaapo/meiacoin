@@ -288,7 +288,7 @@ function updateFormulaTooltip() {
         text: "Perto de 100: o timer está saudável. Alguém está mandando Pix/sub no ritmo em que o relógio gasta tempo.",
       }),
       el("p", {
-        text: "Exemplo: se ninguém doa por uma hora, o relógio queima sozinho e o preço cai de leve (tipo ~95). Se alguém manda um Pix grande, o preço sobe na hora e depois vai esfriando aos poucos.",
+        text: "Exemplo: se ninguém doa, o preço esfria aos poucos (compras pesam por ~1h cheias e depois somem ao longo do dia). Se alguém manda um Pix grande, o preço sobe na hora e vai esfriando sem cliff.",
       }),
       el("p", {
         text: "Quanto menos tempo restar no subathon, mais barato o MeiaCoin fica pois a vida do timer está acabando.",
@@ -403,20 +403,31 @@ function renderRecords(data) {
     );
   }
   if (data.size_distribution && data.size_distribution.length) {
-    const dist = data.size_distribution
-      .slice(0, 6)
-      .map((s) => `${s.seconds}s×${s.count}`)
-      .join(" · ");
-    list.appendChild(
-      el("li", {}, [
-        termLabel("Mix de tamanhos"),
-        el("strong", { className: "mono", text: dist }),
-        el("span", {
-          className: "meta",
-          text: "SSE Twitch quando disponível; senão classes por tamanho",
-        }),
-      ])
-    );
+    const top = data.size_distribution.slice(0, 6);
+    const maxCount = Math.max(...top.map((s) => s.count || 0), 1);
+    const wrap = el("li", { className: "mix-block" }, [
+      termLabel("Mix de tamanhos"),
+      el("span", {
+        className: "meta",
+        text: "SSE Twitch quando disponível; senão classes por tamanho",
+      }),
+    ]);
+    const chart = el("div", { className: "mix-chart" });
+    for (const s of top) {
+      const pct = Math.round(((s.count || 0) / maxCount) * 100);
+      const label = s.likely_label || `${s.seconds}s`;
+      chart.appendChild(
+        el("div", { className: "mix-row" }, [
+          el("span", { className: "mix-label mono", text: label, attrs: { title: `${s.seconds}s` } }),
+          el("div", { className: "mix-bar-track" }, [
+            el("i", { attrs: { style: `width:${pct}%` } }),
+          ]),
+          el("span", { className: "mix-count mono", text: String(s.count) }),
+        ])
+      );
+    }
+    wrap.appendChild(chart);
+    list.appendChild(wrap);
   }
   root.appendChild(list);
 }

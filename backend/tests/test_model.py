@@ -10,8 +10,10 @@ import pytest
 
 from app.model import (
     bought_minutes_in_window,
+    bought_minutes_soft,
     compute_series,
     flow,
+    grant_weight,
     level,
     parse_dt,
     pause_pro_rated_burn,
@@ -40,7 +42,7 @@ def _load_fixture():
     return snaps, incs
 
 
-def _fixture_series():
+def _fixture_series(*, hard_window: bool = False):
     snaps, incs = _load_fixture()
     grants = [(i["at"], i["g"]) for i in incs if i["kind"] == "grant" or i.get("kind") is None]
     # Exclude adjustments if any
@@ -61,11 +63,21 @@ def _fixture_series():
     while t <= t1:
         grid.append(t)
         t += timedelta(seconds=60)
+    if hard_window:
+        # Legacy cliff: hold=W, tau→0 so weight drops to 0 after hold
+        return compute_series(
+            grid,
+            e_genesis,
+            grants,
+            hold_seconds=3600,
+            tau_seconds=1e-9,
+        )
     return compute_series(grid, e_genesis, grants)
 
 
-def test_fixture_headline_numbers():
-    series = _fixture_series()
+def test_fixture_headline_numbers_hard_window_legacy():
+    """Hard-window regression against the 2026-09-23 calibration fixture."""
+    series = _fixture_series(hard_window=True)
     prices = [s["price"] for s in series]
     mn, mx, close = min(prices), max(prices), prices[-1]
     change = (close / prices[0] - 1.0) * 100.0
@@ -73,6 +85,22 @@ def test_fixture_headline_numbers():
     assert abs(mx - 104.94) < 0.01
     assert abs(close - 91.82) < 0.01
     assert abs(change - (-3.47)) < 0.01
+
+
+def test_soft_fade_keeps_weight_after_hold():
+    hold = 3600.0
+    tau = 480.0 * 60.0
+    assert grant_weight(0, hold_seconds=hold, tau_seconds=tau) == 1.0
+    assert grant_weight(hold, hold_seconds=hold, tau_seconds=tau) == 1.0
+    w = grant_weight(hold + tau, hold_seconds=hold, tau_seconds=tau)
+    assert abs(w - math.exp(-1.0)) < 1e-9
+    t = datetime(2026, 9, 22, 15, 0, tzinfo=UTC)
+    grants = [(t - timedelta(hours=2), 3600)]  # 60 min buy, age 2h > hold 1h
+    soft = bought_minutes_soft(t, grants, hold_seconds=hold, tau_seconds=tau)
+    hard = bought_minutes_in_window(t, grants, window_seconds=3600)
+    assert hard == 0.0
+    assert soft > 0.0
+    assert soft < 60.0
 
 
 def test_zero_buys_means_m_minus_one():

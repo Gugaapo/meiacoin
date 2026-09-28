@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     model_alpha: float = 1.0
     model_kappa: float = 0.05
     model_window_minutes: float = 60.0
+    model_flow_hold_minutes: float = 60.0
+    model_flow_tau_minutes: float = 480.0
     model_anchor: str = "peak"
 
     @field_validator("mongodb_url")
@@ -69,6 +71,8 @@ class Settings(BaseSettings):
             "alpha": self.model_alpha,
             "kappa": self.model_kappa,
             "window_minutes": self.model_window_minutes,
+            "flow_hold_minutes": self.model_flow_hold_minutes,
+            "flow_tau_minutes": self.model_flow_tau_minutes,
             "anchor": self.model_anchor,
         }
 

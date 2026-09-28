@@ -18,7 +18,10 @@ P(t) = 100 · L(t)^α · e^(κ · m(t))
 
   R(t) = ends_at(t) − t                              remaining seconds, exact
   L(t) = R(t) / R_ref(t)                             level: fraction of peak life left
-  m(t) = (minutes bought in the last 60 min)/60 − 1  flow: net buying rate
+  m(t) = bought_eff / 60 − 1                         flow vs 60 min/h burn baseline
+
+  bought_eff = Σ minutes_i · w(age_i)
+  w(age) = 1 for age ≤ hold (60 min), then e^(-(age−hold)/τ) with τ = 8 h
 
   α = 1.0   (level elasticity)   κ = 0.05   (flow leverage)
 ```
@@ -27,16 +30,13 @@ Two variables drive everything:
 
 - **Level** — how much life the marathon has left. Closer to zero, cheaper. This supplies the
   long-run trend and the memory (all-time high, drawdown).
-- **Flow** — minutes bought versus the deterministic 60 min/h burn. `m = −1` means nobody bought
-  anything in the last hour, `m = 0` is break-even, `m = +0.78` was the best hour on record.
-  This supplies the volatility.
+- **Flow** — soft-weighted minutes bought versus the deterministic 60 min/h burn. A buy is
+  full-strength for an hour, then fades exponentially over ~a day (`m = −1` with no recent
+  buys). This supplies the volatility without hard one-hour cliffs.
 
 The chart draws a neutral line at **100** (buying exactly matching the burn) and a dotted
 **pure-bleed path** — "if nobody ever buys again" — which the market sits on overnight and lifts
 off during rallies. Once the timer reaches zero, the coin dies with it.
-
-Calibrated against real data: on the measured 24 hours it printed min 89.53, max 104.94, close
-91.82 (−3.47%), at ~143% annualised volatility.
 
 ## Data source
 
